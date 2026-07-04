@@ -15,6 +15,8 @@ final class AppState: ObservableObject {
     @Published var isAlarming = false
     @Published var currentTrigger: AlarmTrigger?
 
+    private var isAuthenticating = false
+
     let faceDetection = FaceDetectionManager()
     let motionMonitor = MotionMonitor()
     let alarm = AlarmController()
@@ -112,10 +114,14 @@ final class AppState: ObservableObject {
     }
 
     func attemptUnlock() async -> Bool {
+        guard !isAuthenticating else { return false }   // one prompt at a time
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+
         log.notice("Unlock requested — awaiting Touch ID/password")
         lockScreen.setElevated(false)   // let the system password dialog show above the overlay
         guard await biometrics.authenticate(reason: "Unlock LurkAway to stop the alarm") else {
-            log.error("Unlock FAILED")
+            log.error("Unlock FAILED/cancelled")
             lockScreen.setElevated(true)
             return false
         }
@@ -129,5 +135,8 @@ final class AppState: ObservableObject {
         lockScreen.show(message: settings.lockMessage) { [weak self] in
             Task { @MainActor in _ = await self?.attemptUnlock() }
         }
+        // Start listening for Touch ID immediately, so a finger press unlocks without
+        // first tapping the button (the button re-opens the prompt if it's dismissed).
+        Task { @MainActor [weak self] in _ = await self?.attemptUnlock() }
     }
 }

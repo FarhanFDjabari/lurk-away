@@ -16,7 +16,7 @@ struct OverlayView: View {
                     .font(.system(size: 80))
                     .foregroundStyle(.red)
 
-                Text("MacBook Locked")
+                Text("Device Locked")
                     .font(.system(size: 36, weight: .bold))
                     .foregroundStyle(.white)
 
