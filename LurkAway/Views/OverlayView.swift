@@ -27,15 +27,20 @@ struct OverlayView: View {
                     .padding(.horizontal, 60)
 
                 Button(action: onUnlock) {
-                    HStack {
+                    HStack(spacing: 14) {
                         Image(systemName: "touchid")
+                            .font(.system(size: 30, weight: .semibold))
                         Text("Unlock")
+                            .font(.system(size: 26, weight: .semibold))
                     }
-                    .font(.title2)
-                    .padding(.horizontal, 40)
-                    .padding(.vertical, 16)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 60)
+                    .padding(.vertical, 24)
+                    .background(.regularMaterial, in: Capsule())
+                    .overlay(Capsule().strokeBorder(.white.opacity(0.25), lineWidth: 1))
+                    .shadow(color: .black.opacity(0.35), radius: 16, y: 6)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.plain)
 
                 Text("Use Touch ID or your device password")
                     .font(.callout)

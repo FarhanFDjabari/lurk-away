@@ -6,13 +6,14 @@ final class AlarmController: ObservableObject {
     @Published var isPlaying = false
 
     private var player: AVAudioPlayer?
-    private var originalVolume: Float?
+    private let audioGuard = LockAudioGuard()
 
     func play() {
         guard !isPlaying else { return }
 
-        originalVolume = SystemVolume.get()
-        SystemVolume.set(1.0)
+        // Force built-in output, unmute, and enforce an audible floor before blasting.
+        audioGuard.begin()
+        if let device = SystemVolume.defaultOutputDevice() { SystemVolume.setVolume(1.0, of: device) }
 
         do {
             player = try AVAudioPlayer(data: SirenGenerator.makeWAV(), fileTypeHint: AVFileType.wav.rawValue)
@@ -23,7 +24,7 @@ final class AlarmController: ObservableObject {
             isPlaying = true
         } catch {
             print("[LurkAway] Failed to play alarm: \(error.localizedDescription)")
-            if let original = originalVolume { SystemVolume.set(original) }
+            audioGuard.end()
         }
     }
 
@@ -31,8 +32,7 @@ final class AlarmController: ObservableObject {
         guard isPlaying else { return }
         player?.stop()
         player = nil
-        if let original = originalVolume { SystemVolume.set(original) }
-        originalVolume = nil
+        audioGuard.end()
         isPlaying = false
     }
 }

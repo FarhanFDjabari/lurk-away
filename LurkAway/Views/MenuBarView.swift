@@ -15,9 +15,13 @@ struct MenuBarView: View {
             }
         } else {
             Button {
-                appState.isArmed ? appState.disarm() : appState.arm()
+                if appState.isArmed {
+                    Task { _ = await appState.attemptDisarm() }
+                } else {
+                    appState.arm()
+                }
             } label: {
-                Label(appState.isArmed ? "I’m Back" : "Watch My Mac",
+                Label(appState.isArmed ? "I’m Back" : "Watch My Device",
                       systemImage: appState.isArmed ? "eye.slash.fill" : "eye.fill")
             }
             .keyboardShortcut(appState.isArmed ? "s" : "w", modifiers: [.command])

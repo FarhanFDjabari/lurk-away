@@ -25,7 +25,7 @@ final class AppState: ObservableObject {
     let settings = SettingsStorage()
 
     private let sleepGuard = SleepGuard()
-    private let armedIndicator = ArmedIndicatorManager()
+    private let armedOverlay = ArmedOverlayManager()
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -84,7 +84,7 @@ final class AppState: ObservableObject {
         log.notice("ARMED (\(trigger.rawValue, privacy: .public)) — power=\(self.settings.armWithPower) lid=\(self.settings.armWithLid)")
         faceDetection.stop()
         sleepGuard.begin(reason: "LurkAway is armed")
-        armedIndicator.show()
+        presentArmedOverlay()
         motionMonitor.usePower = settings.armWithPower
         motionMonitor.useLid = settings.armWithLid
         motionMonitor.start()
@@ -95,7 +95,7 @@ final class AppState: ObservableObject {
         currentTrigger = nil
         log.notice("DISARMED")
         sleepGuard.end()
-        armedIndicator.hide()
+        armedOverlay.hide()
         motionMonitor.stop()
         if settings.autoArmOnWalkAway {
             faceDetection.start()
@@ -107,7 +107,7 @@ final class AppState: ObservableObject {
         isAlarming = true
         currentTrigger = trigger
         log.error("ALARM TRIGGERED — \(trigger.rawValue, privacy: .public)")
-        armedIndicator.hide()
+        armedOverlay.hide()
         motionMonitor.stop()
         alarm.play()
         presentLockScreen()
@@ -131,12 +131,36 @@ final class AppState: ObservableObject {
         return true
     }
 
+    func attemptDisarm() async -> Bool {
+        guard isArmed, !isAuthenticating else { return false }
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+
+        log.notice("Disarm requested — awaiting Touch ID/password")
+        armedOverlay.setElevated(false)   // let the system password dialog show above the overlay
+        guard await biometrics.authenticate(reason: "Unlock LurkAway to use your device") else {
+            log.error("Disarm FAILED/cancelled")
+            armedOverlay.setElevated(true)
+            return false
+        }
+        log.notice("Disarm SUCCEEDED")
+        disarm()
+        return true
+    }
+
+    private func presentArmedOverlay() {
+        // No auto-prompt: the system Touch ID dialog only appears when the owner presses
+        // Unlock on the overlay (or the menubar item).
+        armedOverlay.show { [weak self] in
+            Task { @MainActor in _ = await self?.attemptDisarm() }
+        }
+    }
+
     private func presentLockScreen() {
+        // No auto-prompt: the system Touch ID dialog only appears when the user presses
+        // Unlock on the overlay (or the menubar item).
         lockScreen.show(message: settings.lockMessage) { [weak self] in
             Task { @MainActor in _ = await self?.attemptUnlock() }
         }
-        // Start listening for Touch ID immediately, so a finger press unlocks without
-        // first tapping the button (the button re-opens the prompt if it's dismissed).
-        Task { @MainActor [weak self] in _ = await self?.attemptUnlock() }
     }
 }

@@ -22,7 +22,7 @@ struct SettingsView: View {
     private var protectionTab: some View {
         VStack(alignment: .leading, spacing: 12) {
             Toggle("Watch automatically when I walk away", isOn: $settings.autoArmOnWalkAway)
-            Text("When enabled, LurkAway watches for your face. When you look away and no face is seen for about 5 seconds, it starts watching your Mac automatically. While watching, the camera turns off — disarm it yourself when you're back (the on-screen indicator shows it's active).")
+            Text("When enabled, LurkAway watches for your face. When you look away and no face is seen for about 5 seconds, it starts watching your device automatically. While watching, the camera turns off and the screen blurs — press Touch ID to unlock when you're back.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -82,7 +82,7 @@ struct SettingsView: View {
     private var sensorFooter: String {
         var lines = ["At least one sensor must stay on. Both are near-zero power."]
         if !lidSupported {
-            lines.append("The lid sensor isn't available on this Mac.")
+            lines.append("The lid sensor isn't available on this device.")
         }
         return lines.joined(separator: " ")
     }
