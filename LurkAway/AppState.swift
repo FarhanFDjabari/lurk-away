@@ -62,6 +62,21 @@ final class AppState: ObservableObject {
             }
             .store(in: &cancellables)
 
+        // Start/stop walk-away watching whenever the setting changes, from the menu or Settings.
+        settings.$autoArmOnWalkAway
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in
+                guard let self else { return }
+                self.settings.save()
+                if enabled, !self.isArmed, !self.isAlarming {
+                    self.faceDetection.start()
+                } else if !enabled {
+                    self.faceDetection.stop()
+                }
+            }
+            .store(in: &cancellables)
+
         if settings.autoArmOnWalkAway {
             faceDetection.start()
         }

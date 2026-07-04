@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var settings: SettingsStorage
 
     var body: some View {
         if appState.isAlarming {
@@ -32,15 +33,7 @@ struct MenuBarView: View {
 
             Divider()
 
-            Toggle("Watch automatically when I walk away", isOn: Binding(
-                get: { appState.settings.autoArmOnWalkAway },
-                set: {
-                    appState.settings.autoArmOnWalkAway = $0
-                    appState.settings.save()
-                    if $0, !appState.isArmed { appState.faceDetection.start() }
-                    else { appState.faceDetection.stop() }
-                }
-            ))
+            Toggle("Watch automatically when I walk away", isOn: $settings.autoArmOnWalkAway)
 
             Divider()
 

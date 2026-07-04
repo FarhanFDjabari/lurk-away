@@ -9,6 +9,7 @@ struct LurkAwayApp: App {
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(appState)
+                .environmentObject(appState.settings)
         } label: {
             StatusIcon()
         }
