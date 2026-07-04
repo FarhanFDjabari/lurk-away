@@ -9,6 +9,7 @@ final class SettingsStorage: ObservableObject {
     @Published var armWithPower: Bool
     @Published var armWithLid: Bool
     @Published var armWithCamera: Bool
+    @Published var autoDisarmOnReturn: Bool
 
     init() {
         let defaults = UserDefaults.standard
@@ -18,6 +19,7 @@ final class SettingsStorage: ObservableObject {
         self.armWithPower = defaults.object(forKey: "armWithPower") as? Bool ?? true
         self.armWithLid = defaults.object(forKey: "armWithLid") as? Bool ?? true
         self.armWithCamera = defaults.object(forKey: "armWithCamera") as? Bool ?? true
+        self.autoDisarmOnReturn = defaults.object(forKey: "autoDisarmOnReturn") as? Bool ?? false
     }
 
     func save() {
@@ -28,6 +30,7 @@ final class SettingsStorage: ObservableObject {
         d.set(armWithPower, forKey: "armWithPower")
         d.set(armWithLid, forKey: "armWithLid")
         d.set(armWithCamera, forKey: "armWithCamera")
+        d.set(autoDisarmOnReturn, forKey: "autoDisarmOnReturn")
     }
 
     static let defaultMessage = """

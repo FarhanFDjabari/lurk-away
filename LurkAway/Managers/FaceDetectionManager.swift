@@ -25,16 +25,20 @@ final class FaceDetectionManager: NSObject, ObservableObject {
 
     func start() {
         guard !isRunning else { return }
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        log.notice("FaceDetection.start — camera authStatus=\(status.rawValue)")
+        switch status {
         case .authorized:
             configureAndRun()
         case .notDetermined:
+            log.notice("Requesting camera access…")
             AVCaptureDevice.requestAccess(for: .video) { granted in
+                log.notice("Camera access granted=\(granted)")
                 guard granted else { return }
                 Task { @MainActor [weak self] in self?.configureAndRun() }
             }
         case .denied, .restricted:
-            print("[LurkAway] Camera access denied — walk-away detection disabled")
+            log.error("Camera access denied/restricted — walk-away detection disabled")
         @unknown default:
             break
         }
@@ -61,10 +65,11 @@ final class FaceDetectionManager: NSObject, ObservableObject {
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .unspecified),
               let input = try? AVCaptureDeviceInput(device: device),
               captureSession.canAddInput(input) else {
-            print("[LurkAway] Camera not available")
+            log.error("Camera not available for face detection")
             captureSession.commitConfiguration()
             return
         }
+        log.notice("Face-detection camera running")
         captureSession.addInput(input)
         CameraTuning.throttle(device, toFPS: 2)   // we only sample every 1.5s
 

@@ -3,7 +3,11 @@ import AppKit
 
 struct SettingsView: View {
     @EnvironmentObject var settings: SettingsStorage
+    @EnvironmentObject var appState: AppState
     @State private var lidSupported = LidAngleMonitor.isSupported()
+    @State private var faceEnrolled = FaceRecognizer.isEnrolled
+    @State private var enrolling = false
+    @State private var enrollFailed = false
 
     var body: some View {
         TabView {
@@ -26,10 +30,58 @@ struct SettingsView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Divider().padding(.vertical, 4)
+
+            Text("Recognize me")
+                .font(.headline)
+            Toggle("Stand down automatically when it recognizes my face", isOn: $settings.autoDisarmOnReturn)
+                .disabled(!faceEnrolled)
+
+            HStack(spacing: 10) {
+                if enrolling {
+                    ProgressView().controlSize(.small)
+                    Text("Look at the camera…").foregroundStyle(.secondary)
+                } else {
+                    Button(faceEnrolled ? "Re-enroll face" : "Enroll my face", action: enroll)
+                    if faceEnrolled {
+                        Button("Remove", role: .destructive) {
+                            FaceRecognizer.clear()
+                            faceEnrolled = false
+                            settings.autoDisarmOnReturn = false
+                            settings.save()
+                        }
+                    }
+                    Label(faceEnrolled ? "Face enrolled" : "Not enrolled",
+                          systemImage: faceEnrolled ? "checkmark.circle.fill" : "person.crop.circle.badge.questionmark")
+                        .foregroundStyle(faceEnrolled ? .green : .secondary)
+                }
+            }
+            if enrollFailed {
+                Text("Couldn't capture your face — make sure it's well-lit and centered, then try again.")
+                    .font(.caption).foregroundStyle(.red)
+            }
+            Text("Face matching can be fooled by a photo, so this only stands down while watching — stopping a live alarm always needs Touch ID or your password.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding()
+    }
+
+    private func enroll() {
+        enrollFailed = false
+        enrolling = true
+        Task {
+            let success = await appState.enrollFace()
+            enrolling = false
+            faceEnrolled = FaceRecognizer.isEnrolled
+            enrollFailed = !success
+            if faceEnrolled, success { settings.autoDisarmOnReturn = true; settings.save() }
+        }
     }
 
     private var sensorsTab: some View {
