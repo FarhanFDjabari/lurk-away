@@ -7,6 +7,7 @@ final class SettingsStorage: ObservableObject {
     @Published var autoArmOnWalkAway: Bool
     @Published var armWithPower: Bool
     @Published var armWithLid: Bool
+    @Published var keepAwakeWithLidClosed: Bool
 
     init() {
         let defaults = UserDefaults.standard
@@ -14,6 +15,7 @@ final class SettingsStorage: ObservableObject {
         self.autoArmOnWalkAway = defaults.object(forKey: "autoArmOnWalkAway") as? Bool ?? true
         self.armWithPower = defaults.object(forKey: "armWithPower") as? Bool ?? true
         self.armWithLid = defaults.object(forKey: "armWithLid") as? Bool ?? true
+        self.keepAwakeWithLidClosed = defaults.object(forKey: "keepAwakeWithLidClosed") as? Bool ?? false
     }
 
     func save() {
@@ -22,6 +24,7 @@ final class SettingsStorage: ObservableObject {
         d.set(autoArmOnWalkAway, forKey: "autoArmOnWalkAway")
         d.set(armWithPower, forKey: "armWithPower")
         d.set(armWithLid, forKey: "armWithLid")
+        d.set(keepAwakeWithLidClosed, forKey: "keepAwakeWithLidClosed")
     }
 
     static let defaultMessage = """

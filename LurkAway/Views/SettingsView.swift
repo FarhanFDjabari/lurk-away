@@ -3,8 +3,10 @@ import AppKit
 
 struct SettingsView: View {
     @EnvironmentObject var settings: SettingsStorage
+    @EnvironmentObject var appState: AppState
     @StateObject private var launchAtLogin = LaunchAtLogin()
     @State private var lidSupported = LidAngleMonitor.isSupported()
+    @State private var daemonStatus: SleepDaemonClient.Status = .notRegistered
 
     var body: some View {
         TabView {
@@ -14,6 +16,8 @@ struct SettingsView: View {
                 .tabItem { Label("Sensors", systemImage: "sensor.tag.radiowaves.forward") }
             alarmTab
                 .tabItem { Label("Alarm", systemImage: "speaker.wave.3") }
+            advancedTab
+                .tabItem { Label("Advanced", systemImage: "gearshape.2") }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(WindowActivator())
@@ -79,6 +83,78 @@ struct SettingsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding()
+    }
+
+    private var advancedTab: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Toggle("Keep Mac awake with the lid closed while watching", isOn: Binding(
+                get: { settings.keepAwakeWithLidClosed },
+                set: { setKeepAwake($0) }
+            ))
+            .toggleStyle(.switch)
+
+            Text("Normally macOS sleeps the moment the lid closes, so the alarm can't sound until the lid reopens. When enabled, LurkAway temporarily stops lid-close sleep while watching, so the siren keeps blasting. Sleep returns to normal the instant you unlock or stop watching.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if settings.keepAwakeWithLidClosed {
+                authorizationStatus
+            }
+
+            Text("This needs a one-time administrator authorization to install a small helper that runs while watching. It only ever changes the lid-sleep setting, and reverts automatically if the app quits or crashes.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding()
+        .onAppear { daemonStatus = appState.sleepDaemon.status }
+    }
+
+    @ViewBuilder
+    private var authorizationStatus: some View {
+        switch daemonStatus {
+        case .enabled:
+            Label("Helper authorized and ready.", systemImage: "checkmark.seal.fill")
+                .foregroundStyle(.green)
+                .font(.callout)
+        case .requiresApproval:
+            VStack(alignment: .leading, spacing: 8) {
+                Label("Waiting for approval in System Settings.", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.callout)
+                Button("Open Login Items Settings…") {
+                    appState.sleepDaemon.openApprovalSettings()
+                }
+            }
+        case .notRegistered:
+            Label("Enabling will request authorization.", systemImage: "lock.fill")
+                .foregroundStyle(.secondary)
+                .font(.callout)
+        case .unavailable:
+            Label("Helper unavailable on this system.", systemImage: "xmark.octagon.fill")
+                .foregroundStyle(.red)
+                .font(.callout)
+        }
+    }
+
+    private func setKeepAwake(_ enabled: Bool) {
+        settings.keepAwakeWithLidClosed = enabled
+        settings.save()
+        if enabled {
+            daemonStatus = appState.sleepDaemon.register()
+            if daemonStatus == .requiresApproval {
+                appState.sleepDaemon.openApprovalSettings()
+            }
+        } else {
+            Task {
+                await appState.sleepDaemon.unregister()
+                daemonStatus = appState.sleepDaemon.status
+            }
+        }
     }
 
     private var enabledSensorCount: Int {

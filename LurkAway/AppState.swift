@@ -23,6 +23,7 @@ final class AppState: ObservableObject {
     let lockScreen = LockScreenManager()
     let biometrics = BiometricManager()
     let settings = SettingsStorage()
+    let sleepDaemon = SleepDaemonClient()
 
     private let sleepGuard = SleepGuard()
     private let armedOverlay = ArmedOverlayManager()
@@ -57,6 +58,11 @@ final class AppState: ObservableObject {
             }
             .store(in: &cancellables)
 
+        // Best-effort revert if the app is quit while armed; the daemon backstops this too.
+        NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)
+            .sink { [weak self] _ in self?.sleepDaemon.enableSleep() }
+            .store(in: &cancellables)
+
         // Start/stop walk-away watching whenever the setting changes, from the menu or Settings.
         settings.$autoArmOnWalkAway
             .dropFirst()
@@ -84,6 +90,9 @@ final class AppState: ObservableObject {
         log.notice("ARMED (\(trigger.rawValue, privacy: .public)) — power=\(self.settings.armWithPower) lid=\(self.settings.armWithLid)")
         faceDetection.stop()
         sleepGuard.begin(reason: "LurkAway is armed")
+        if settings.keepAwakeWithLidClosed {
+            sleepDaemon.disableSleep()
+        }
         presentArmedOverlay()
         motionMonitor.usePower = settings.armWithPower
         motionMonitor.useLid = settings.armWithLid
@@ -94,6 +103,7 @@ final class AppState: ObservableObject {
         isArmed = false
         currentTrigger = nil
         log.notice("DISARMED")
+        sleepDaemon.enableSleep()
         sleepGuard.end()
         armedOverlay.hide()
         motionMonitor.stop()
