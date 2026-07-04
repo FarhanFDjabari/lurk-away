@@ -55,25 +55,23 @@ func draw(size: Int, template: Bool) -> CGImage {
         return p
     }
 
-    let eye = CGMutablePath()
-    eye.move(to: pt(0.13, 0.5))
-    eye.addQuadCurve(to: pt(0.87, 0.5), control: pt(0.5, 0.18))   // upper lid
-    eye.addQuadCurve(to: pt(0.13, 0.5), control: pt(0.5, 0.82))   // lower lid
+    // Soft round eye (like 👀) — a wide oval, no sharp corners.
+    let eye = CGPath(ellipseIn: rectC(0.5, 0.5, 0.72, 0.56), transform: nil)
 
     if template {
-        // Eye outline + big pupil with the keyhole punched out.
+        // Eye outline + a modest pupil with the keyhole punched out (soft, not a hard stare).
         c.setStrokeColor(white)
-        c.setLineWidth(0.055 * S)
+        c.setLineWidth(0.05 * S)
         c.setLineJoin(.round)
         c.addPath(eye); c.strokePath()
-        c.setFillColor(white); c.addEllipse(in: circ(0.5, 0.5, 0.17)); c.fillPath()
+        c.setFillColor(white); c.addEllipse(in: circ(0.5, 0.5, 0.135)); c.fillPath()
         c.setBlendMode(.clear); c.addPath(keyholePath()); c.fillPath(); c.setBlendMode(.normal)
     } else {
-        c.setFillColor(white); c.addPath(eye); c.fillPath()                       // sclera
-        c.setFillColor(darkIris); c.addEllipse(in: circ(0.5, 0.5, 0.2)); c.fillPath()  // iris
-        c.setFillColor(white); c.addPath(keyholePath()); c.fillPath()             // keyhole pupil
+        c.setFillColor(white); c.addPath(eye); c.fillPath()                        // sclera
+        c.setFillColor(darkIris); c.addEllipse(in: circ(0.5, 0.5, 0.165)); c.fillPath()  // iris
+        c.setFillColor(white); c.addPath(keyholePath()); c.fillPath()              // keyhole pupil
         c.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.5))
-        c.addEllipse(in: circ(0.4, 0.42, 0.028)); c.fillPath()                    // highlight
+        c.addEllipse(in: circ(0.41, 0.43, 0.026)); c.fillPath()                    // highlight
     }
 
     return c.makeImage()!
