@@ -31,7 +31,7 @@ final class SettingsStorage: ObservableObject {
     }
 
     static let defaultMessage = """
-    🔒 This MacBook is protected by LurkAway.
+    This MacBook is protected by LurkAway.
     If you are not the owner, please return this device immediately.
     An alarm notification has been sent to the owner with this location.
     """

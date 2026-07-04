@@ -5,20 +5,29 @@ struct MenuBarView: View {
 
     var body: some View {
         if appState.isAlarming {
-            Text("🚨 Caught someone!")
+            Label("Caught someone!", systemImage: "exclamationmark.triangle.fill")
             Divider()
-            Button("Unlock (Touch ID or password)") {
+            Button {
                 Task { _ = await appState.attemptUnlock() }
+            } label: {
+                Label("Unlock (Touch ID or password)", systemImage: "lock.open.fill")
             }
         } else {
-            Button(appState.isArmed ? "🙈 I’m Back" : "👁 Watch My Mac") {
+            Button {
                 appState.isArmed ? appState.disarm() : appState.arm()
+            } label: {
+                Label(appState.isArmed ? "I’m Back" : "Watch My Mac",
+                      systemImage: appState.isArmed ? "eye.slash.fill" : "eye.fill")
             }
             .keyboardShortcut(appState.isArmed ? "s" : "w", modifiers: [.command])
 
             if appState.isArmed {
-                Text("👁 Watching…")
-                Button("🔔 Test Alarm") { appState.triggerAlarm(.manual) }
+                Label("Watching…", systemImage: "eye.fill")
+                Button {
+                    appState.triggerAlarm(.manual)
+                } label: {
+                    Label("Test Alarm", systemImage: "bell.fill")
+                }
             }
 
             Divider()
@@ -35,11 +44,15 @@ struct MenuBarView: View {
 
             Divider()
 
-            SettingsLink { Text("Settings...") }
+            SettingsLink { Label("Settings…", systemImage: "gearshape") }
                 .keyboardShortcut(",", modifiers: [.command])
 
-            Button("Quit LurkAway") { NSApp.terminate(nil) }
-                .keyboardShortcut("q", modifiers: [.command])
+            Button {
+                NSApp.terminate(nil)
+            } label: {
+                Label("Quit LurkAway", systemImage: "power")
+            }
+            .keyboardShortcut("q", modifiers: [.command])
         }
     }
 }
