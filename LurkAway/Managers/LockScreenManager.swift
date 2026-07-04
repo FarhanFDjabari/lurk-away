@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import os
 
 /// Borderless panel that is allowed to become key/main so it captures keyboard input,
 /// preventing keystrokes from leaking to whatever window sits behind the lock overlay.
@@ -11,7 +12,6 @@ private final class LockPanel: NSPanel {
 @MainActor
 final class LockScreenManager {
     private var overlayWindows: [LockPanel] = []
-    private var priorPresentationOptions: NSApplication.PresentationOptions?
 
     private static let topLevel = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.maximumWindow)) - 1)
 
@@ -43,22 +43,14 @@ final class LockScreenManager {
             overlayWindows.append(panel)
         }
 
-        // Block switching away (Cmd-Tab / Mission Control) so the lock can't be bypassed.
-        priorPresentationOptions = NSApp.presentationOptions
-        NSApp.presentationOptions = [.disableProcessSwitching, .disableHideApplication]
-
-        // Activate the app and make the overlay the key window so it owns keyboard input;
-        // keystrokes can no longer reach a text field behind the lock.
+        // Show first, then take key focus so keystrokes can't reach a window behind the lock.
         NSApp.activate(ignoringOtherApps: true)
         for panel in overlayWindows { panel.orderFrontRegardless() }
         overlayWindows.first?.makeKeyAndOrderFront(nil)
+        log.notice("Lock overlay shown on \(self.overlayWindows.count) screen(s)")
     }
 
     func dismiss() {
-        if let prior = priorPresentationOptions {
-            NSApp.presentationOptions = prior
-            priorPresentationOptions = nil
-        }
         for window in overlayWindows {
             window.orderOut(nil)
             window.close()
