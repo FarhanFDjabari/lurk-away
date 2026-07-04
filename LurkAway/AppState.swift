@@ -21,6 +21,8 @@ final class AppState: ObservableObject {
     let biometrics = BiometricManager()
     let settings = SettingsStorage()
 
+    private let sleepGuard = SleepGuard()
+
     private var cancellables = Set<AnyCancellable>()
 
     init() {
@@ -61,6 +63,7 @@ final class AppState: ObservableObject {
         isArmed = true
         currentTrigger = trigger
         faceDetection.stop()
+        sleepGuard.begin(reason: "LurkAway is armed")
         motionMonitor.sensitivity = settings.motionSensitivity
         motionMonitor.usePower = settings.armWithPower
         motionMonitor.useLid = settings.armWithLid
@@ -71,6 +74,7 @@ final class AppState: ObservableObject {
     func disarm() {
         isArmed = false
         currentTrigger = nil
+        sleepGuard.end()
         motionMonitor.stop()
         if settings.autoArmOnWalkAway {
             faceDetection.start()
