@@ -39,8 +39,8 @@ func draw(size: Int, template: Bool) -> CGImage {
     }
 
     // Eyes (white ellipses, slight outward tilt)
-    let eyeW: CGFloat = 0.245, eyeH: CGFloat = 0.40
-    let eyes: [(x: CGFloat, tilt: CGFloat)] = [(0.365, 9), (0.635, -9)]
+    let eyeW: CGFloat = 0.25, eyeH: CGFloat = 0.42
+    let eyes: [(x: CGFloat, tilt: CGFloat)] = [(0.35, 12), (0.65, -12)]
     let eyeCyTop: CGFloat = 0.45
     c.setFillColor(white)
     for e in eyes {
@@ -54,22 +54,25 @@ func draw(size: Int, template: Bool) -> CGImage {
     }
 
     // Pupils — looking down. Green (icon) or punched (template).
-    let pupilR: CGFloat = 0.075
+    let pupilR: CGFloat = 0.092
     for e in eyes {
-        let r = circ(e.x - 0.005, eyeCyTop + 0.11, pupilR)
+        let dir: CGFloat = e.x < 0.5 ? -1 : 1
+        let px: CGFloat = e.x + dir * 0.02
+        let pyTop: CGFloat = eyeCyTop + 0.13
+        let r = circ(px, pyTop, pupilR)
         if template {
             c.setBlendMode(.clear); c.addEllipse(in: r); c.fillPath(); c.setBlendMode(.normal)
         } else {
             c.setFillColor(green); c.addEllipse(in: r); c.fillPath()
-            c.setFillColor(white); c.addEllipse(in: circ(e.x + 0.02, eyeCyTop + 0.075, 0.02)); c.fillPath()
+            c.setFillColor(white); c.addEllipse(in: circ(px + dir * 0.015, pyTop - 0.04, 0.024)); c.fillPath()
         }
     }
 
     // Padlock (white). Shackle first, then body, then keyhole.
     c.setFillColor(white); c.setStrokeColor(white)
     let lockCx: CGFloat = 0.5
-    let shackleR: CGFloat = 0.082
-    let shackleCyTop: CGFloat = 0.585
+    let shackleR: CGFloat = 0.075
+    let shackleCyTop: CGFloat = 0.6
     c.setLineWidth(0.052 * S)
     c.setLineCap(.round)
     let scx = lockCx * S, scy = (1 - shackleCyTop) * S
@@ -78,12 +81,12 @@ func draw(size: Int, template: Bool) -> CGImage {
     c.strokePath()
 
     // Body
-    let body = CGPath(roundedRect: rectC(lockCx, 0.71, 0.30, 0.235),
+    let body = CGPath(roundedRect: rectC(lockCx, 0.725, 0.27, 0.225),
                       cornerWidth: 0.05 * S, cornerHeight: 0.05 * S, transform: nil)
     c.addPath(body); c.setFillColor(white); c.fillPath()
 
     // Keyhole
-    let khCyTop: CGFloat = 0.685
+    let khCyTop: CGFloat = 0.7
     if template {
         c.setBlendMode(.clear)
         c.addEllipse(in: circ(lockCx, khCyTop, 0.032)); c.fillPath()
