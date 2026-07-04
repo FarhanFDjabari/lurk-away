@@ -13,6 +13,7 @@ Everything runs on-device. No account, no network, no telemetry.
 - **Walk-away auto-arm** — pulses the front camera (~1 frame/1.5s) and arms when your face is gone for ~5 seconds.
 - **Blurred armed overlay** — a full-screen frosted overlay with watching eyes; the camera turns **off** while armed to save power.
 - **Tamper alarm** — while armed, unplugging AC power or moving the lid triggers a loud synthesized siren and a black lock screen.
+- **Alarm with the lid closed** *(optional)* — normally macOS sleeps the instant the lid shuts, so the siren can't sound until the lid reopens. Enable this to keep the Mac awake **only while armed**, so closing the lid triggers the siren immediately. Sleep returns to normal the moment you unlock or stop watching — and reverts automatically even if the app crashes. Requires a one-time administrator authorization (see [Keep awake with the lid closed](#keep-awake-with-the-lid-closed)).
 - **Kiosk lockdown** — both the armed and lock overlays suppress the menu bar, Dock, Mission Control, app switching, force-quit, and logout, so the device can't be used or escaped without authenticating.
 - **Touch ID unlock** — button-triggered; the only way out.
 - **Audible-floor guard** — on lock, output is forced to the built-in speakers and unmuted, and volume can't be dropped below 10% until you unlock. Your prior output device, volume, and mute state are restored afterward.
@@ -80,6 +81,36 @@ Open **Settings** from the menu bar:
 - **Protection** — auto-watch on walk-away, start at login.
 - **Sensors** — which tamper triggers are active (AC power, lid).
 - **Alarm** — the lock-screen message.
+- **Advanced** — keep the Mac awake with the lid closed while armed (see below).
+
+## Keep awake with the lid closed
+
+By default macOS forces the machine to sleep the moment the lid is fully shut, so the
+alarm can only start once the lid is reopened. The optional **"Keep Mac awake with the lid
+closed"** setting (Settings › Advanced) removes that gap: while armed, it disables
+lid-close sleep so the siren sounds with the lid down, then restores normal sleep as soon
+as you unlock or stop watching.
+
+Disabling system sleep requires root, so this is done by a small privileged helper:
+
+- **One-time authorization.** Enabling the setting installs a helper daemon via
+  `SMAppService`. macOS asks you to approve it once under **System Settings › General ›
+  Login Items & Extensions**. No password prompt on later arms.
+- **Least privilege.** The helper (`com.lurkaway.sleepd`) exposes a single XPC operation —
+  toggle lid-close sleep — and only accepts connections from LurkAway signed by the same
+  Developer ID. It runs `pmset disablesleep` with a fixed argument list; nothing else.
+- **Fail-safe by design.** Sleep is only ever disabled while armed, and is restored on
+  disarm, unlock, or app quit. If the app **crashes or is force-quit**, the helper detects
+  the dropped connection and reverts within seconds; a 30-second heartbeat watchdog and a
+  revert-on-launch backstop cover hangs and unclean shutdowns. There is no state where the
+  Mac is left unable to sleep after LurkAway is gone.
+
+Turning the setting off unregisters the helper.
+
+> **Notarization:** for distributed builds the helper must be notarized together with the
+> app (it's embedded at `Contents/MacOS/com.lurkaway.sleepd` with its launchd plist at
+> `Contents/Library/LaunchDaemons/`). Locally built and development-signed apps register
+> the helper fine on the same machine.
 
 ## Privacy
 
@@ -105,14 +136,23 @@ LurkAway/
 │  ├─ LockAudioGuard           # Audible-floor enforcement (CoreAudio)
 │  ├─ SystemVolume             # CoreAudio volume / mute / output device
 │  ├─ BiometricManager         # Touch ID / password (LocalAuthentication)
-│  ├─ SleepGuard               # Keeps sensors alive while armed
+│  ├─ SleepGuard               # Prevents idle sleep while armed (IOPMAssertion)
+│  ├─ SleepDaemonClient        # Registers/controls the lid-sleep helper over XPC
 │  └─ LaunchAtLogin            # SMAppService login item
 └─ Views/                      # SwiftUI menu, settings, overlays
+
+Shared/
+└─ SleepControlProtocol.swift  # XPC contract, compiled into app + helper
+
+SleepHelper/                   # Privileged LaunchDaemon (runs as root)
+├─ main.swift                  # XPC listener + client code-signing check
+├─ SleepController.swift       # pmset toggle + watchdog + fail-safe reverts
+└─ com.lurkaway.sleepd.plist   # launchd plist (embedded in the app bundle)
 ```
 
 ## Limitations
 
-- **Clamshell sleep** — macOS forces sleep when the lid is fully closed; that's a hardware-level behavior a sandboxed app can't override, so the lid trigger reacts to lid *movement* rather than depending on staying awake closed.
+- **Clamshell sleep** — by default macOS forces sleep when the lid is fully closed, so without the optional [keep-awake helper](#keep-awake-with-the-lid-closed) the lid trigger reacts to lid *movement* and the siren only becomes audible once the lid is reopened. Enabling the helper keeps the Mac awake while armed so the siren sounds with the lid shut.
 - **Recovery** — while locked, the escape hatches are disabled by design; recovery is Touch ID (or, worst case, a hard power-off).
 
 ## License
