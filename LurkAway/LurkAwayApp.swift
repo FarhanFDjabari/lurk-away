@@ -1,17 +1,31 @@
-//
-//  LurkAwayApp.swift
-//  LurkAway
-//
-//  Created by Djabari on 4/7/26.
-//
-
 import SwiftUI
 
 @main
 struct LurkAwayApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @StateObject private var appState = AppState()
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra {
+            MenuBarView()
+                .environmentObject(appState)
+        } label: {
+            StatusIcon(isArmed: appState.isArmed, isAlarming: appState.isAlarming)
         }
+        .menuBarExtraStyle(.menu)
+
+        Settings {
+            SettingsView()
+                .environmentObject(appState)
+                .environmentObject(appState.settings)
+                .frame(minWidth: 420, minHeight: 500)
+        }
+        .windowResizability(.contentSize)
+    }
+}
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
     }
 }
