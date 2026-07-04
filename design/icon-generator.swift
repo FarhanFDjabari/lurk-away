@@ -38,7 +38,7 @@ func draw(size: Int, template: Bool) -> CGImage {
         c.addPath(bg); c.setFillColor(green); c.fillPath()
     } else {
         // Menu bar: no background, so scale the glyph up to fill the canvas for legibility.
-        let k: CGFloat = 1.4
+        let k: CGFloat = 1.15
         c.translateBy(x: S / 2, y: S / 2)
         c.scaleBy(x: k, y: k)
         c.translateBy(x: -S / 2, y: -S / 2)
@@ -59,10 +59,16 @@ func draw(size: Int, template: Bool) -> CGImage {
     let eye = CGPath(ellipseIn: rectC(0.5, 0.5, 0.72, 0.56), transform: nil)
 
     if template {
-        // Filled eye for the menu bar: solid eye silhouette with a round pupil punched out.
-        c.setFillColor(white)
-        c.addPath(eye); c.fillPath()
-        c.setBlendMode(.clear); c.addEllipse(in: circ(0.5, 0.5, 0.16)); c.fillPath(); c.setBlendMode(.normal)
+        // 👀-based menu bar glyph: two solid eyes, pupils side-glancing (lurking / looking away).
+        let eyeW: CGFloat = 0.36, eyeH: CGFloat = 0.5, pupilR: CGFloat = 0.11
+        let gazeX: CGFloat = -0.06, gazeY: CGFloat = 0.05
+        for cx in [0.31, 0.69] as [CGFloat] {
+            c.setFillColor(white)
+            c.addEllipse(in: rectC(cx, 0.5, eyeW, eyeH)); c.fillPath()
+            c.setBlendMode(.clear)
+            c.addEllipse(in: circ(cx + gazeX, 0.5 + gazeY, pupilR)); c.fillPath()
+            c.setBlendMode(.normal)
+        }
     } else {
         c.setFillColor(white); c.addPath(eye); c.fillPath()                        // sclera
         c.setFillColor(darkIris); c.addEllipse(in: circ(0.5, 0.5, 0.165)); c.fillPath()  // iris
