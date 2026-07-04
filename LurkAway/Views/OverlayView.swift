@@ -8,6 +8,9 @@ struct OverlayView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
+            WatchingEyesBackground()
+                .ignoresSafeArea()
+
             VStack(spacing: 32) {
                 Image(systemName: "lock.shield.fill")
                     .font(.system(size: 80))
