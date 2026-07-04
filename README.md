@@ -157,4 +157,4 @@ SleepHelper/                   # Privileged LaunchDaemon (runs as root)
 
 ## License
 
-[MIT](LICENSE) © 2026 Farhan Djabari
+[MIT](LICENSE) © 2026 FarhanFDjabari
