@@ -5,14 +5,9 @@ struct StatusIcon: View {
     let isAlarming: Bool
 
     var body: some View {
-        Image(systemName: iconName)
-            .symbolRenderingMode(.palette)
-            .foregroundStyle(color, .white)
-    }
-
-    private var iconName: String {
-        if isAlarming { return "shield.slash.fill" }
-        return isArmed ? "checkmark.shield.fill" : "shield.fill"
+        Image("StatusGlyph")
+            .renderingMode(.template)
+            .foregroundStyle(color)
     }
 
     private var color: Color {
