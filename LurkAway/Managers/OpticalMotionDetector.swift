@@ -18,15 +18,23 @@ final class OpticalMotionDetector: NSObject {
     private nonisolated static let gridSize = 8
     private nonisolated static let sampleInterval: TimeInterval = 0.2
 
+    // A cell counts as "changed" when its luminance shifts this much (0..1).
+    private nonisolated static let perCellDelta: Float = 0.11
+    // Require this many consecutive changed frames so a brief passer-by doesn't trigger.
+    private nonisolated static let requiredConsecutive = 2
+
     // Accessed only on the serial capture queue.
     private nonisolated(unsafe) var previousSignature: [Float]?
     private nonisolated(unsafe) var lastSampleTime = Date.distantPast
     private nonisolated(unsafe) var didFire = false
+    private nonisolated(unsafe) var consecutiveGlobalChanges = 0
+    // Fraction of the frame that must change to count as the laptop moving (not a passer-by).
     // Set on MainActor when sensitivity changes, read on the capture queue (float snapshot).
-    private nonisolated(unsafe) var currentThreshold: Float = 0.13
+    private nonisolated(unsafe) var requiredCoverage: Float = 0.525
 
     private func updateThreshold() {
-        currentThreshold = Float(0.23 - 0.20 * max(0, min(1, sensitivity)))
+        // sensitivity 0 → 0.75 (whole view must change), 0.5 → 0.525, 1 → 0.30
+        requiredCoverage = Float(0.75 - 0.45 * max(0, min(1, sensitivity)))
     }
 
     func start() {
@@ -56,6 +64,7 @@ final class OpticalMotionDetector: NSObject {
         previousSignature = nil
         didFire = false
         lastSampleTime = .distantPast
+        consecutiveGlobalChanges = 0
     }
 
     private func configureAndRun() {
@@ -140,13 +149,21 @@ extension OpticalMotionDetector: AVCaptureVideoDataOutputSampleBufferDelegate {
         defer { previousSignature = current }
         guard let previous = previousSignature, previous.count == current.count else { return }
 
-        var total: Float = 0
-        for i in 0..<current.count {
-            total += abs(current[i] - previous[i])
+        // Count how much of the frame changed. A passer-by alters a few cells; picking the
+        // laptop up (or covering the lens) shifts the whole viewpoint — most cells change.
+        var changedCells = 0
+        for i in 0..<current.count where abs(current[i] - previous[i]) > Self.perCellDelta {
+            changedCells += 1
         }
-        let meanDiff = total / Float(current.count)
+        let coverage = Float(changedCells) / Float(current.count)
 
-        if meanDiff > currentThreshold {
+        if coverage > requiredCoverage {
+            consecutiveGlobalChanges += 1
+        } else {
+            consecutiveGlobalChanges = 0
+        }
+
+        if consecutiveGlobalChanges >= Self.requiredConsecutive {
             didFire = true
             Task { @MainActor [weak self] in self?.onMotion?() }
         }

@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
     @EnvironmentObject var settings: SettingsStorage
@@ -8,62 +9,71 @@ struct SettingsView: View {
         TabView {
             protectionTab
                 .tabItem { Label("Protection", systemImage: "shield") }
-                .padding()
-
             sensorsTab
                 .tabItem { Label("Sensors", systemImage: "sensor.tag.radiowaves.forward") }
-                .padding()
-
             alarmTab
                 .tabItem { Label("Alarm", systemImage: "speaker.wave.3") }
-                .padding()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(WindowActivator())
         .onDisappear { settings.save() }
     }
 
     private var protectionTab: some View {
-        Form {
+        VStack(alignment: .leading, spacing: 12) {
             Toggle("Auto-arm when I walk away from my MacBook", isOn: $settings.autoArmOnWalkAway)
             Text("When enabled, LurkAway scans for your face periodically. When no face is detected for about 5 seconds, theft protection arms automatically.")
-                .font(.caption)
+                .font(.callout)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding()
     }
 
     private var sensorsTab: some View {
-        Form {
-            Section {
-                Toggle("AC power disconnected", isOn: $settings.armWithPower)
-                    .disabled(isLastEnabled(settings.armWithPower))
-                Toggle("Lid moved", isOn: $settings.armWithLid)
-                    .disabled(!lidSupported || isLastEnabled(settings.armWithLid && lidSupported))
-                Toggle("Camera detects motion", isOn: $settings.armWithCamera)
-                    .disabled(isLastEnabled(settings.armWithCamera))
-            } header: {
-                Text("Trigger the alarm while armed when…")
-            } footer: {
-                Text(sensorFooter)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Trigger the alarm while armed when…")
+                .font(.headline)
+
+            Toggle("AC power disconnected", isOn: $settings.armWithPower)
+                .disabled(isLastEnabled(settings.armWithPower))
+            Toggle("Lid moved", isOn: $settings.armWithLid)
+                .disabled(!lidSupported || isLastEnabled(settings.armWithLid && lidSupported))
+            Toggle("Camera detects motion", isOn: $settings.armWithCamera)
+                .disabled(isLastEnabled(settings.armWithCamera))
 
             if settings.armWithCamera {
-                HStack {
-                    Text("Camera sensitivity")
-                    Slider(value: $settings.motionSensitivity, in: 0...1)
-                }
+                Divider().padding(.vertical, 4)
+                Text("Camera sensitivity")
+                Slider(value: $settings.motionSensitivity, in: 0...1)
             }
+
+            Text(sensorFooter)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 4)
+
+            Spacer(minLength: 0)
         }
+        .toggleStyle(.switch)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding()
     }
 
     private var alarmTab: some View {
-        Form {
-            VStack(alignment: .leading) {
-                Text("Lock screen message")
-                TextField("Lock screen message", text: $settings.lockMessage, axis: .vertical)
-                    .lineLimit(5...10)
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Lock screen message")
+                .font(.headline)
+            TextField("Message shown when the alarm triggers", text: $settings.lockMessage, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(5...12)
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding()
     }
 
     /// Number of sensors that would actually run while armed.
@@ -87,4 +97,19 @@ struct SettingsView: View {
         }
         return lines.joined(separator: " ")
     }
+}
+
+/// Brings the Settings window to the front and activates the (accessory) app when it opens.
+private struct WindowActivator: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+            view.window?.makeKeyAndOrderFront(nil)
+            view.window?.orderFrontRegardless()
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
