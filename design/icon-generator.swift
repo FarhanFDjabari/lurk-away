@@ -59,13 +59,10 @@ func draw(size: Int, template: Bool) -> CGImage {
     let eye = CGPath(ellipseIn: rectC(0.5, 0.5, 0.72, 0.56), transform: nil)
 
     if template {
-        // Eye outline + a modest pupil with the keyhole punched out (soft, not a hard stare).
-        c.setStrokeColor(white)
-        c.setLineWidth(0.05 * S)
-        c.setLineJoin(.round)
-        c.addPath(eye); c.strokePath()
-        c.setFillColor(white); c.addEllipse(in: circ(0.5, 0.5, 0.135)); c.fillPath()
-        c.setBlendMode(.clear); c.addPath(keyholePath()); c.fillPath(); c.setBlendMode(.normal)
+        // Filled eye for the menu bar: solid eye silhouette with a round pupil punched out.
+        c.setFillColor(white)
+        c.addPath(eye); c.fillPath()
+        c.setBlendMode(.clear); c.addEllipse(in: circ(0.5, 0.5, 0.16)); c.fillPath(); c.setBlendMode(.normal)
     } else {
         c.setFillColor(white); c.addPath(eye); c.fillPath()                        // sclera
         c.setFillColor(darkIris); c.addEllipse(in: circ(0.5, 0.5, 0.165)); c.fillPath()  // iris
