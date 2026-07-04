@@ -3,6 +3,7 @@ import AppKit
 
 struct SettingsView: View {
     @EnvironmentObject var settings: SettingsStorage
+    @StateObject private var launchAtLogin = LaunchAtLogin()
     @State private var lidSupported = LidAngleMonitor.isSupported()
 
     var body: some View {
@@ -26,6 +27,18 @@ struct SettingsView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Divider()
+
+            Toggle("Start LurkAway at login", isOn: Binding(
+                get: { launchAtLogin.isEnabled },
+                set: { launchAtLogin.set($0) }
+            ))
+            Text("Launches LurkAway automatically after you log in, so protection is always on.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
