@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 import Vision
 import Combine
+import os
 
 /// Pulse-samples the front camera (~one frame per 1.5s) and arms theft protection
 /// when no face is seen for several consecutive cycles (~5s), i.e. the owner walked away.
@@ -87,6 +88,7 @@ final class FaceDetectionManager: NSObject, ObservableObject {
     }
 
     private func walkAwayDetected() {
+        log.notice("Walk-away detected — no face for ~5s")
         stop()
         facePresent = false
         onWalkAway?()

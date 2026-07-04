@@ -7,7 +7,7 @@ struct MenuBarView: View {
         if appState.isAlarming {
             Text("🚨 ALARM ACTIVE")
             Divider()
-            Button("Unlock with Touch ID") {
+            Button("Unlock (Touch ID or password)") {
                 Task { _ = await appState.attemptUnlock() }
             }
         } else {

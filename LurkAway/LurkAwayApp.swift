@@ -10,7 +10,7 @@ struct LurkAwayApp: App {
             MenuBarView()
                 .environmentObject(appState)
         } label: {
-            StatusIcon(isArmed: appState.isArmed, isAlarming: appState.isAlarming)
+            StatusIcon()
         }
         .menuBarExtraStyle(.menu)
 

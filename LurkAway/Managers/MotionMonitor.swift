@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import os
 
 /// Coordinates the tamper triggers active while armed. The user chooses which run:
 /// - `PowerMonitor`: AC adapter unplugged.
@@ -24,9 +25,18 @@ final class MotionMonitor: ObservableObject {
     private let optical = OpticalMotionDetector()
 
     init() {
-        power.onUnplug = { [weak self] in self?.fire() }
-        lid.onLidChange = { [weak self] in self?.fire() }
-        optical.onMotion = { [weak self] in self?.fire() }
+        power.onUnplug = { [weak self] in
+            log.notice("Sensor fired: POWER unplugged")
+            self?.fire()
+        }
+        lid.onLidChange = { [weak self] in
+            log.notice("Sensor fired: LID moved")
+            self?.fire()
+        }
+        optical.onMotion = { [weak self] in
+            log.notice("Sensor fired: CAMERA motion")
+            self?.fire()
+        }
     }
 
     func start() {

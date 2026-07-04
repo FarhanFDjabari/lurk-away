@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import AppKit
+import os
 
 enum AlarmTrigger: String {
     case manual = "Manual"
@@ -62,6 +63,7 @@ final class AppState: ObservableObject {
         guard !isArmed else { return }
         isArmed = true
         currentTrigger = trigger
+        log.notice("ARMED (\(trigger.rawValue, privacy: .public)) — power=\(self.settings.armWithPower) lid=\(self.settings.armWithLid) camera=\(self.settings.armWithCamera)")
         faceDetection.stop()
         sleepGuard.begin(reason: "LurkAway is armed")
         motionMonitor.sensitivity = settings.motionSensitivity
@@ -74,6 +76,7 @@ final class AppState: ObservableObject {
     func disarm() {
         isArmed = false
         currentTrigger = nil
+        log.notice("DISARMED")
         sleepGuard.end()
         motionMonitor.stop()
         if settings.autoArmOnWalkAway {
@@ -85,15 +88,19 @@ final class AppState: ObservableObject {
         guard !isAlarming else { return }
         isAlarming = true
         currentTrigger = trigger
+        log.error("ALARM TRIGGERED — \(trigger.rawValue, privacy: .public)")
         motionMonitor.stop()
         alarm.play()
         presentLockScreen()
     }
 
     func attemptUnlock() async -> Bool {
+        log.notice("Unlock requested — awaiting Touch ID/password")
         guard await biometrics.authenticate(reason: "Unlock LurkAway to stop the alarm") else {
+            log.error("Unlock FAILED")
             return false
         }
+        log.notice("Unlock SUCCEEDED — stopping alarm")
         alarm.stop()
         disarm()
         return true

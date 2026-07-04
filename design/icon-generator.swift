@@ -36,6 +36,12 @@ func draw(size: Int, template: Bool) -> CGImage {
         let bg = CGPath(roundedRect: CGRect(x: 0, y: 0, width: S, height: S),
                         cornerWidth: 0.2237 * S, cornerHeight: 0.2237 * S, transform: nil)
         c.addPath(bg); c.setFillColor(green); c.fillPath()
+    } else {
+        // Menu bar: no background, so scale the glyph up to fill the canvas for legibility.
+        let k: CGFloat = 1.4
+        c.translateBy(x: S / 2, y: S / 2)
+        c.scaleBy(x: k, y: k)
+        c.translateBy(x: -S / 2, y: -S / 2)
     }
 
     // Eyes (white ellipses, slight outward tilt)

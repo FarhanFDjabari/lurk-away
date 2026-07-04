@@ -29,13 +29,17 @@ struct OverlayView: View {
                 Button(action: onUnlock) {
                     HStack {
                         Image(systemName: "touchid")
-                        Text("Unlock with Touch ID")
+                        Text("Unlock")
                     }
                     .font(.title2)
                     .padding(.horizontal, 40)
                     .padding(.vertical, 16)
                 }
                 .buttonStyle(.borderedProminent)
+
+                Text("Use Touch ID or your device password")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.6))
             }
         }
     }
