@@ -58,6 +58,21 @@ Open the built `.app` (not the raw binary) so macOS grants camera access through
 
 Or open `LurkAway.xcodeproj` in Xcode and Run.
 
+## Installing a downloaded release
+
+Release builds are **not** notarized with an Apple Developer ID, so macOS Gatekeeper
+quarantines the downloaded app and shows a blocking prompt like *"Apple could not verify
+'LurkAway' is free of malware…"* (no **Open** button).
+
+After moving `LurkAway.app` to `/Applications`, remove the quarantine attribute once and it
+opens normally from then on:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/LurkAway.app
+```
+
+Building from source (above) avoids this entirely — locally built apps aren't quarantined.
+
 ## Settings
 
 Open **Settings** from the menu bar:
