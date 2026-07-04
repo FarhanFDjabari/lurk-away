@@ -24,7 +24,6 @@ final class AppState: ObservableObject {
 
     private let sleepGuard = SleepGuard()
     private let armedIndicator = ArmedIndicatorManager()
-    private let faceEnroller = FaceEnroller()
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -35,12 +34,6 @@ final class AppState: ObservableObject {
 
         motionMonitor.onMotion = { [weak self] in
             self?.triggerAlarm(.motionDetected)
-        }
-
-        // Owner recognized while watching (pre-alarm only) -> stand down.
-        motionMonitor.onOwnerReturn = { [weak self] in
-            guard let self, self.isArmed, !self.isAlarming else { return }
-            self.disarm()
         }
 
         alarm.$isPlaying
@@ -86,15 +79,12 @@ final class AppState: ObservableObject {
         guard !isArmed else { return }
         isArmed = true
         currentTrigger = trigger
-        log.notice("ARMED (\(trigger.rawValue, privacy: .public)) — power=\(self.settings.armWithPower) lid=\(self.settings.armWithLid) camera=\(self.settings.armWithCamera)")
+        log.notice("ARMED (\(trigger.rawValue, privacy: .public)) — power=\(self.settings.armWithPower) lid=\(self.settings.armWithLid)")
         faceDetection.stop()
         sleepGuard.begin(reason: "LurkAway is armed")
         armedIndicator.show()
-        motionMonitor.sensitivity = settings.motionSensitivity
         motionMonitor.usePower = settings.armWithPower
         motionMonitor.useLid = settings.armWithLid
-        motionMonitor.useCamera = settings.armWithCamera
-        motionMonitor.autoDisarmOnReturn = settings.autoDisarmOnReturn && FaceRecognizer.isEnrolled
         motionMonitor.start()
     }
 
@@ -133,15 +123,6 @@ final class AppState: ObservableObject {
         alarm.stop()
         disarm()
         return true
-    }
-
-    func enrollFace() async -> Bool {
-        faceDetection.stop()
-        let success = await withCheckedContinuation { continuation in
-            faceEnroller.enroll { continuation.resume(returning: $0) }
-        }
-        if settings.autoArmOnWalkAway, !isArmed { faceDetection.start() }
-        return success
     }
 
     private func presentLockScreen() {

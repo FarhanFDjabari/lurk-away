@@ -15,15 +15,37 @@ final class LidAngleMonitor {
     private var baseline: Double?
 
     private let thresholdDegrees = 5.0
-    private static let sensorUsagePage = 0x20
-    private static let lidAngleUsage = 0x047F
-    private static let pollInterval: TimeInterval = 0.3
+    private nonisolated static let sensorUsagePage = 0x20
+    private nonisolated static let lidAngleUsage = 0x047F
+    private nonisolated static let pollInterval: TimeInterval = 0.3
+
+    private nonisolated(unsafe) static var cachedSupport: Bool?
 
     /// Whether this Mac exposes a readable lid-angle sensor (false on desktops / clamshell setups).
+    /// Probed once with a self-contained IOKit check (no instance, so nothing to deinit).
     static func isSupported() -> Bool {
-        let probe = LidAngleMonitor()
-        defer { probe.stop() }
-        return probe.openSensor() && probe.readAngle() != nil
+        if let cached = cachedSupport { return cached }
+        let supported = probeLidSensor()
+        cachedSupport = supported
+        return supported
+    }
+
+    private nonisolated static func probeLidSensor() -> Bool {
+        let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+        IOHIDManagerSetDeviceMatching(manager, [kIOHIDDeviceUsagePageKey: sensorUsagePage] as CFDictionary)
+        guard IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone)) == kIOReturnSuccess else { return false }
+        defer { IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone)) }
+
+        guard let devices = IOHIDManagerCopyDevices(manager) as? Set<IOHIDDevice> else { return false }
+        for device in devices {
+            guard let elements = IOHIDDeviceCopyMatchingElements(device, nil, IOOptionBits(kIOHIDOptionsTypeNone)) as? [IOHIDElement] else { continue }
+            if elements.contains(where: {
+                IOHIDElementGetUsagePage($0) == UInt32(sensorUsagePage) && IOHIDElementGetUsage($0) == UInt32(lidAngleUsage)
+            }) {
+                return true
+            }
+        }
+        return false
     }
 
     func start() {
