@@ -44,64 +44,36 @@ func draw(size: Int, template: Bool) -> CGImage {
         c.translateBy(x: -S / 2, y: -S / 2)
     }
 
-    // Eyes (white ellipses, slight outward tilt)
-    let eyeW: CGFloat = 0.25, eyeH: CGFloat = 0.42
-    let eyes: [(x: CGFloat, tilt: CGFloat)] = [(0.35, 12), (0.65, -12)]
-    let eyeCyTop: CGFloat = 0.45
-    c.setFillColor(white)
-    for e in eyes {
-        c.saveGState()
-        let cx = e.x * S, cy = (1 - eyeCyTop) * S
-        c.translateBy(x: cx, y: cy)
-        c.rotate(by: e.tilt * .pi / 180)
-        c.addEllipse(in: CGRect(x: -eyeW * S / 2, y: -eyeH * S / 2, width: eyeW * S, height: eyeH * S))
-        c.fillPath()
-        c.restoreGState()
+    // Single bold eye (almond) with a keyhole pupil: "watching" + "secure".
+    let darkIris = CGColor(red: 0.086, green: 0.278, blue: 0.235, alpha: 1)   // deep teal
+    func pt(_ fx: CGFloat, _ fyTop: CGFloat) -> CGPoint { CGPoint(x: fx * S, y: (1 - fyTop) * S) }
+
+    func keyholePath() -> CGPath {
+        let p = CGMutablePath()
+        p.addEllipse(in: circ(0.5, 0.455, 0.07))
+        p.addRect(rectC(0.5, 0.57, 0.052, 0.12))
+        return p
     }
 
-    // Pupils — looking down. Green (icon) or punched (template).
-    let pupilR: CGFloat = 0.092
-    for e in eyes {
-        let dir: CGFloat = e.x < 0.5 ? -1 : 1
-        let px: CGFloat = e.x + dir * 0.02
-        let pyTop: CGFloat = eyeCyTop + 0.13
-        let r = circ(px, pyTop, pupilR)
-        if template {
-            c.setBlendMode(.clear); c.addEllipse(in: r); c.fillPath(); c.setBlendMode(.normal)
-        } else {
-            c.setFillColor(green); c.addEllipse(in: r); c.fillPath()
-            c.setFillColor(white); c.addEllipse(in: circ(px + dir * 0.015, pyTop - 0.04, 0.024)); c.fillPath()
-        }
-    }
+    let eye = CGMutablePath()
+    eye.move(to: pt(0.13, 0.5))
+    eye.addQuadCurve(to: pt(0.87, 0.5), control: pt(0.5, 0.18))   // upper lid
+    eye.addQuadCurve(to: pt(0.13, 0.5), control: pt(0.5, 0.82))   // lower lid
 
-    // Padlock (white). Shackle first, then body, then keyhole.
-    c.setFillColor(white); c.setStrokeColor(white)
-    let lockCx: CGFloat = 0.5
-    let shackleR: CGFloat = 0.075
-    let shackleCyTop: CGFloat = 0.6
-    c.setLineWidth(0.052 * S)
-    c.setLineCap(.round)
-    let scx = lockCx * S, scy = (1 - shackleCyTop) * S
-    c.addArc(center: CGPoint(x: scx, y: scy), radius: shackleR * S,
-             startAngle: 0, endAngle: .pi, clockwise: false)
-    c.strokePath()
-
-    // Body
-    let body = CGPath(roundedRect: rectC(lockCx, 0.725, 0.27, 0.225),
-                      cornerWidth: 0.05 * S, cornerHeight: 0.05 * S, transform: nil)
-    c.addPath(body); c.setFillColor(white); c.fillPath()
-
-    // Keyhole
-    let khCyTop: CGFloat = 0.7
     if template {
-        c.setBlendMode(.clear)
-        c.addEllipse(in: circ(lockCx, khCyTop, 0.032)); c.fillPath()
-        c.addPath(CGPath(rect: rectC(lockCx, khCyTop + 0.045, 0.028, 0.06), transform: nil)); c.fillPath()
-        c.setBlendMode(.normal)
+        // Eye outline + big pupil with the keyhole punched out.
+        c.setStrokeColor(white)
+        c.setLineWidth(0.055 * S)
+        c.setLineJoin(.round)
+        c.addPath(eye); c.strokePath()
+        c.setFillColor(white); c.addEllipse(in: circ(0.5, 0.5, 0.17)); c.fillPath()
+        c.setBlendMode(.clear); c.addPath(keyholePath()); c.fillPath(); c.setBlendMode(.normal)
     } else {
-        c.setFillColor(green)
-        c.addEllipse(in: circ(lockCx, khCyTop, 0.032)); c.fillPath()
-        c.addPath(CGPath(rect: rectC(lockCx, khCyTop + 0.045, 0.028, 0.06), transform: nil)); c.fillPath()
+        c.setFillColor(white); c.addPath(eye); c.fillPath()                       // sclera
+        c.setFillColor(darkIris); c.addEllipse(in: circ(0.5, 0.5, 0.2)); c.fillPath()  // iris
+        c.setFillColor(white); c.addPath(keyholePath()); c.fillPath()             // keyhole pupil
+        c.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.5))
+        c.addEllipse(in: circ(0.4, 0.42, 0.028)); c.fillPath()                    // highlight
     }
 
     return c.makeImage()!

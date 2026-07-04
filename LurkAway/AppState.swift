@@ -23,6 +23,7 @@ final class AppState: ObservableObject {
     let settings = SettingsStorage()
 
     private let sleepGuard = SleepGuard()
+    private let armedIndicator = ArmedIndicatorManager()
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -66,6 +67,7 @@ final class AppState: ObservableObject {
         log.notice("ARMED (\(trigger.rawValue, privacy: .public)) — power=\(self.settings.armWithPower) lid=\(self.settings.armWithLid) camera=\(self.settings.armWithCamera)")
         faceDetection.stop()
         sleepGuard.begin(reason: "LurkAway is armed")
+        armedIndicator.show()
         motionMonitor.sensitivity = settings.motionSensitivity
         motionMonitor.usePower = settings.armWithPower
         motionMonitor.useLid = settings.armWithLid
@@ -78,6 +80,7 @@ final class AppState: ObservableObject {
         currentTrigger = nil
         log.notice("DISARMED")
         sleepGuard.end()
+        armedIndicator.hide()
         motionMonitor.stop()
         if settings.autoArmOnWalkAway {
             faceDetection.start()
@@ -89,6 +92,7 @@ final class AppState: ObservableObject {
         isAlarming = true
         currentTrigger = trigger
         log.error("ALARM TRIGGERED — \(trigger.rawValue, privacy: .public)")
+        armedIndicator.hide()
         motionMonitor.stop()
         alarm.play()
         presentLockScreen()
@@ -96,8 +100,10 @@ final class AppState: ObservableObject {
 
     func attemptUnlock() async -> Bool {
         log.notice("Unlock requested — awaiting Touch ID/password")
+        lockScreen.setElevated(false)   // let the system password dialog show above the overlay
         guard await biometrics.authenticate(reason: "Unlock LurkAway to stop the alarm") else {
             log.error("Unlock FAILED")
+            lockScreen.setElevated(true)
             return false
         }
         log.notice("Unlock SUCCEEDED — stopping alarm")

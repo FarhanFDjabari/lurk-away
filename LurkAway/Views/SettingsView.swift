@@ -21,8 +21,8 @@ struct SettingsView: View {
 
     private var protectionTab: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Toggle("Auto-arm when I walk away from my MacBook", isOn: $settings.autoArmOnWalkAway)
-            Text("When enabled, LurkAway scans for your face periodically. When no face is detected for about 5 seconds, theft protection arms automatically.")
+            Toggle("Watch automatically when I walk away", isOn: $settings.autoArmOnWalkAway)
+            Text("When enabled, LurkAway watches for your face. When you look away and no face is seen for about 5 seconds, it starts watching your Mac automatically.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -104,9 +104,14 @@ private struct WindowActivator: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
+            guard let window = view.window else { return }
+            // Float above other apps so reopening Settings always brings it to the front,
+            // even when the accessory app isn't the active one.
+            window.level = .floating
+            window.collectionBehavior.insert(.moveToActiveSpace)
             NSApp.activate(ignoringOtherApps: true)
-            view.window?.makeKeyAndOrderFront(nil)
-            view.window?.orderFrontRegardless()
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
         }
         return view
     }

@@ -5,6 +5,15 @@ import AppKit
 final class LockScreenManager {
     private var overlayWindows: [NSPanel] = []
 
+    private static let topLevel = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.maximumWindow)) - 1)
+
+    /// Lower the overlay so the system Touch ID / password dialog appears on top and is usable,
+    /// then raise it again if authentication fails.
+    func setElevated(_ elevated: Bool) {
+        let level: NSWindow.Level = elevated ? Self.topLevel : .normal
+        for window in overlayWindows { window.level = level }
+    }
+
     func show(message: String, onUnlock: @escaping () -> Void) {
         dismiss()
 
@@ -15,7 +24,7 @@ final class LockScreenManager {
                 backing: .buffered,
                 defer: false
             )
-            panel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.maximumWindow)) - 1)
+            panel.level = Self.topLevel
             panel.isOpaque = true
             panel.backgroundColor = .black
             panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]

@@ -5,24 +5,25 @@ struct MenuBarView: View {
 
     var body: some View {
         if appState.isAlarming {
-            Text("🚨 ALARM ACTIVE")
+            Text("🚨 Caught someone!")
             Divider()
             Button("Unlock (Touch ID or password)") {
                 Task { _ = await appState.attemptUnlock() }
             }
         } else {
-            Button(appState.isArmed ? "🔒 Disarm" : "🛡 Arm Now") {
+            Button(appState.isArmed ? "🙈 I’m Back" : "👁 Watch My Mac") {
                 appState.isArmed ? appState.disarm() : appState.arm()
             }
-            .keyboardShortcut(appState.isArmed ? "d" : "a", modifiers: [.command])
+            .keyboardShortcut(appState.isArmed ? "s" : "w", modifiers: [.command])
 
             if appState.isArmed {
+                Text("👁 Watching…")
                 Button("🔔 Test Alarm") { appState.triggerAlarm(.manual) }
             }
 
             Divider()
 
-            Toggle("Auto-arm when I walk away", isOn: Binding(
+            Toggle("Watch automatically when I walk away", isOn: Binding(
                 get: { appState.settings.autoArmOnWalkAway },
                 set: {
                     appState.settings.autoArmOnWalkAway = $0
