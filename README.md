@@ -8,6 +8,8 @@ LurkAway is a lightweight menu bar app for macOS. When you walk away, it arms it
 
 Everything runs on-device. No account, no network, no telemetry.
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/W0B022MCZW)
+
 ## Features
 
 - **Walk-away auto-arm** — pulses the front camera (~1 frame/1.5s) and arms when your face is gone for ~5 seconds.
