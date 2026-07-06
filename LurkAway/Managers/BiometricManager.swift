@@ -1,4 +1,5 @@
 import LocalAuthentication
+import os
 
 @MainActor
 final class BiometricManager {
@@ -14,12 +15,12 @@ final class BiometricManager {
             do {
                 return try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
             } catch {
-                print("[LurkAway] Authentication failed: \(error.localizedDescription)")
+                log.error("Authentication failed: \(error.localizedDescription, privacy: .public)")
                 return false
             }
         }
 
-        print("[LurkAway] Device authentication unavailable: \(error?.localizedDescription ?? "unknown")")
+        log.error("Device authentication unavailable: \(error?.localizedDescription ?? "unknown", privacy: .public)")
         return false
     }
 }

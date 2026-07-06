@@ -100,6 +100,7 @@ final class AppState: ObservableObject {
     }
 
     func disarm() {
+        guard isArmed || isAlarming else { return }
         isArmed = false
         currentTrigger = nil
         log.notice("DISARMED")
@@ -124,7 +125,7 @@ final class AppState: ObservableObject {
     }
 
     func attemptUnlock() async -> Bool {
-        guard !isAuthenticating else { return false }   // one prompt at a time
+        guard isAlarming, !isAuthenticating else { return false }   // one prompt at a time
         isAuthenticating = true
         defer { isAuthenticating = false }
 
