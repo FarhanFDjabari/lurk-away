@@ -22,3 +22,9 @@ xcuserdata/
 *.ipa
 *.dSYM.zip
 *.dSYM
+
+# Promo video (Remotion) — local only, not pushed
+/promo
+
+# Planning docs — local only, not pushed
+*-plan.md
