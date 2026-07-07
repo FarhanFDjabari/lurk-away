@@ -13,8 +13,11 @@ Everything runs on-device. No account, no network, no telemetry.
 ## Features
 
 - **Walk-away auto-arm** — pulses the front camera (~1 frame/1.5s) and arms when your face is gone for ~5 seconds.
-- **Blurred armed overlay** — a full-screen frosted overlay with watching eyes; the camera turns **off** while armed to save power.
+- **Blurred armed overlay** — a full-screen frosted overlay with watching eyes; the camera turns **off** while armed to save power (it powers on briefly only to grab an evidence photo at alarm time, if that option is enabled).
 - **Tamper alarm** — while armed, unplugging AC power or moving the lid triggers a loud synthesized siren and a black lock screen.
+- **Evidence capture** *(optional)* — on a tamper, LurkAway grabs one compact photo of whoever is at the device and saves it **on this Mac only**. Tuned for a small, readable file (~30–80 KB), optionally geotagged. Reveal or delete stored photos from Settings anytime.
+- **Remote alert** *(optional, off by default)* — get notified the moment a tamper fires, via [ntfy](https://ntfy.sh): a push with the photo inline (open a topic URL in a browser, or use the ntfy app) and/or a plain email. No account, no server to run. See the [remote alerts setup guide](docs/ntfy-setup.md).
+- **Tunable detection** — set the walk-away delay, lid-movement sensitivity, and siren volume in Settings.
 - **Alarm with the lid closed** *(optional)* — normally macOS sleeps the instant the lid shuts, so the siren can't sound until the lid reopens. Enable this to keep the Mac awake **only while armed**, so closing the lid triggers the siren immediately. Sleep returns to normal the moment you unlock or stop watching — and reverts automatically even if the app crashes. Requires a one-time administrator authorization (see [Keep awake with the lid closed](#keep-awake-with-the-lid-closed)).
 - **Kiosk lockdown** — both the armed and lock overlays suppress the menu bar, Dock, Mission Control, app switching, force-quit, and logout, so the device can't be used or escaped without authenticating.
 - **Touch ID unlock** — button-triggered; the only way out.
@@ -82,7 +85,9 @@ Open **Settings** from the menu bar:
 
 - **Protection** — auto-watch on walk-away, start at login.
 - **Sensors** — which tamper triggers are active (AC power, lid).
+- **Detection** — walk-away delay, lid-movement sensitivity, siren volume.
 - **Alarm** — the lock-screen message.
+- **Alerts** — capture an evidence photo, tag it with location, and opt-in remote alerts via ntfy; plus reveal/delete stored evidence. See the [remote alerts setup guide](docs/ntfy-setup.md).
 - **Advanced** — keep the Mac awake with the lid closed while armed (see below).
 
 ## Keep awake with the lid closed
@@ -116,9 +121,14 @@ Turning the setting off unregisters the helper.
 
 ## Privacy
 
-- The camera is used **only** to detect whether a face is present, entirely on-device via Apple's Vision framework. No images are stored or transmitted.
-- The camera is **off** the whole time the device is armed.
-- No network access, accounts, or analytics.
+LurkAway is on-device and silent by default. The optional features are opt-in and clearly labelled:
+
+- **Walk-away detection** uses the camera **only** to check whether a face is present, entirely on-device via Apple's Vision framework. Those frames are never stored or transmitted.
+- The camera is **off** while armed. The one exception: if **evidence capture** is enabled, the camera powers on for a fraction of a second at alarm time to grab a single photo, then shuts off.
+- **Evidence photos stay on your Mac** (`~/Library/Application Support/LurkAway/Evidence`). They are never uploaded unless you also enable remote alerts. You can delete them anytime from Settings › Alerts.
+- **Location tagging** is off by default; when enabled it asks for permission and records a coarse location with the alert.
+- **Remote alerts** are off by default and are the only feature that leaves your Mac. When enabled, a tamper sends the notification — and, in topic mode, the photo — to the ntfy server you configure, over HTTPS. With remote alerts off, LurkAway makes **no network connections at all**.
+- No accounts, no analytics, no telemetry.
 
 ## Project structure
 
@@ -140,8 +150,17 @@ LurkAway/
 │  ├─ BiometricManager         # Touch ID / password (LocalAuthentication)
 │  ├─ SleepGuard               # Prevents idle sleep while armed (IOPMAssertion)
 │  ├─ SleepDaemonClient        # Registers/controls the lid-sleep helper over XPC
-│  └─ LaunchAtLogin            # SMAppService login item
+│  ├─ LaunchAtLogin            # SMAppService login item
+│  ├─ EvidenceCaptureManager   # One-shot compact JPEG snapshot at alarm
+│  ├─ LocationTagger           # One-shot coarse geotag (CoreLocation)
+│  ├─ EvidenceStore            # Saves / counts / deletes evidence on disk
+│  ├─ EvidenceReporter         # Orchestrates capture + geotag + remote alert
+│  ├─ NotificationSender       # ntfy client (topic photo + optional email)
+│  └─ KeychainStore            # Optional ntfy token (Keychain, not UserDefaults)
 └─ Views/                      # SwiftUI menu, settings, overlays
+
+docs/
+└─ ntfy-setup.md               # Remote alerts setup & troubleshooting guide
 
 Shared/
 └─ SleepControlProtocol.swift  # XPC contract, compiled into app + helper

@@ -14,7 +14,7 @@ final class LidAngleMonitor {
     private var timer: Timer?
     private var baseline: Double?
 
-    private let thresholdDegrees = 5.0
+    var thresholdDegrees = 5.0
     private nonisolated static let sensorUsagePage = 0x20
     private nonisolated static let lidAngleUsage = 0x047F
     private nonisolated static let pollInterval: TimeInterval = 0.3
