@@ -5,7 +5,8 @@ enum SirenGenerator {
     private static let sampleRate = 44_100.0
     private static let cycleSeconds = 1.2   // one full low→high→low sweep; loops seamlessly
 
-    static func makeWAV() -> Data {
+    static func makeWAV(amplitude: Double = 0.9) -> Data {
+        let level = min(max(amplitude, 0.0), 0.99)
         let frameCount = Int(sampleRate * cycleSeconds)
         var samples = [Int16](repeating: 0, count: frameCount)
 
@@ -20,7 +21,7 @@ enum SirenGenerator {
             let freq = lowFreq + (highFreq - lowFreq) * sweep
             phase += 2.0 * .pi * freq / sampleRate
             let value = sin(phase)
-            samples[i] = Int16(value * Double(Int16.max) * 0.9)
+            samples[i] = Int16(value * Double(Int16.max) * level)
         }
 
         return wrapWAV(samples: samples)

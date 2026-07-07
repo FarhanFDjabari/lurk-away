@@ -11,14 +11,18 @@ final class FaceDetectionManager: NSObject, ObservableObject {
 
     var onWalkAway: (() -> Void)?
 
+    /// Consecutive no-face cycles before arming. Set before `start()`; snapshotted into
+    /// `activeThreshold` for the capture queue. Defaults to ~5s (3 × 1.5s).
+    var walkAwayThreshold = 3
+
     private let captureSession = AVCaptureSession()
     private let sampleQueue = DispatchQueue(label: "dev.djabari.LurkAway.camera")
     private var isRunning = false
 
     private nonisolated static let sampleInterval: TimeInterval = 1.5
-    private nonisolated static let noFaceThreshold = 3   // 3 × 1.5s ≈ 5 seconds
 
     // Accessed only on the serial capture queue.
+    private nonisolated(unsafe) var activeThreshold = 3
     private nonisolated(unsafe) var consecutiveNoFaceCount = 0
     private nonisolated(unsafe) var lastSampleTime = Date.distantPast
     private nonisolated(unsafe) var didTrigger = false
@@ -85,6 +89,7 @@ final class FaceDetectionManager: NSObject, ObservableObject {
         didTrigger = false
         lastSampleTime = Date()
         consecutiveNoFaceCount = 0
+        activeThreshold = max(1, walkAwayThreshold)
         captureSession.startRunning()
     }
 
@@ -130,7 +135,7 @@ extension FaceDetectionManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             consecutiveNoFaceCount += 1
         }
 
-        let walkAway = consecutiveNoFaceCount >= Self.noFaceThreshold
+        let walkAway = consecutiveNoFaceCount >= activeThreshold
         if walkAway { didTrigger = true }
 
         Task { @MainActor [weak self] in

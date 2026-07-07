@@ -14,6 +14,7 @@ final class MotionMonitor: ObservableObject {
 
     var usePower = true
     var useLid = true
+    var lidSensitivityDegrees = 5.0
 
     private let power = PowerMonitor()
     private let lid = LidAngleMonitor()
@@ -26,7 +27,10 @@ final class MotionMonitor: ObservableObject {
     func start() {
         motionDetected = false
         if usePower { power.start() }
-        if useLid { lid.start() }
+        if useLid {
+            lid.thresholdDegrees = lidSensitivityDegrees
+            lid.start()
+        }
     }
 
     func stop() {

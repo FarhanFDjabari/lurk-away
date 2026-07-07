@@ -9,16 +9,17 @@ final class AlarmController: ObservableObject {
     private var player: AVAudioPlayer?
     private let audioGuard = LockAudioGuard()
 
-    func play() {
+    func play(volume: Double = 1.0) {
         guard !isPlaying else { return }
+        let level = min(max(volume, 0.0), 1.0)
 
         // Force built-in output and unmute before blasting.
         audioGuard.begin()
 
         do {
-            player = try AVAudioPlayer(data: SirenGenerator.makeWAV(), fileTypeHint: AVFileType.wav.rawValue)
+            player = try AVAudioPlayer(data: SirenGenerator.makeWAV(amplitude: 0.9 * level), fileTypeHint: AVFileType.wav.rawValue)
             player?.numberOfLoops = -1
-            player?.volume = 1.0
+            player?.volume = Float(level)
             player?.prepareToPlay()
             // Enforce an audible floor only once the player is ready to sound.
             if let device = SystemVolume.defaultOutputDevice() { SystemVolume.setVolume(1.0, of: device) }

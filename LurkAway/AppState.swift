@@ -25,6 +25,8 @@ final class AppState: ObservableObject {
     let settings = SettingsStorage()
     let sleepDaemon = SleepDaemonClient()
 
+    let evidenceReporter = EvidenceReporter()
+
     private let sleepGuard = SleepGuard()
     private let armedOverlay = ArmedOverlayManager()
 
@@ -71,7 +73,7 @@ final class AppState: ObservableObject {
                 guard let self else { return }
                 self.settings.save()
                 if enabled, !self.isArmed, !self.isAlarming {
-                    self.faceDetection.start()
+                    self.startWalkAwayWatch()
                 } else if !enabled {
                     self.faceDetection.stop()
                 }
@@ -79,8 +81,13 @@ final class AppState: ObservableObject {
             .store(in: &cancellables)
 
         if settings.autoArmOnWalkAway {
-            faceDetection.start()
+            startWalkAwayWatch()
         }
+    }
+
+    private func startWalkAwayWatch() {
+        faceDetection.walkAwayThreshold = settings.noFaceThreshold
+        faceDetection.start()
     }
 
     func arm(trigger: AlarmTrigger = .manual) {
@@ -96,6 +103,7 @@ final class AppState: ObservableObject {
         presentArmedOverlay()
         motionMonitor.usePower = settings.armWithPower
         motionMonitor.useLid = settings.armWithLid
+        motionMonitor.lidSensitivityDegrees = settings.lidSensitivityDegrees
         motionMonitor.start()
     }
 
@@ -109,7 +117,7 @@ final class AppState: ObservableObject {
         armedOverlay.hide()
         motionMonitor.stop()
         if settings.autoArmOnWalkAway {
-            faceDetection.start()
+            startWalkAwayWatch()
         }
     }
 
@@ -120,8 +128,18 @@ final class AppState: ObservableObject {
         log.error("ALARM TRIGGERED — \(trigger.rawValue, privacy: .public)")
         armedOverlay.hide()
         motionMonitor.stop()
-        alarm.play()
+        alarm.play(volume: settings.sirenVolume)
         presentLockScreen()
+
+        // Evidence capture runs off the alarm path — it must never delay the siren or unlock.
+        if settings.captureEvidence || settings.tagLocation || settings.pushEnabled {
+            let reporter = evidenceReporter
+            let currentSettings = settings
+            Task.detached(priority: .utility) {
+                let record = await reporter.capture(trigger: trigger, settings: currentSettings)
+                await reporter.deliver(record, settings: currentSettings)
+            }
+        }
     }
 
     func attemptUnlock() async -> Bool {
