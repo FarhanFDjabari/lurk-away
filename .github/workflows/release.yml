@@ -35,3 +35,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ github.event.release.tag_name }}" LurkAway.zip --clobber
+
+  cask:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Point the Homebrew cask at the new release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release download "$TAG" -p LurkAway.zip -D /tmp --clobber
+          SHA="$(sha256sum /tmp/LurkAway.zip | cut -d ' ' -f1)"
+          sed -i -E \
+            -e "s/^  version \".*\"/  version \"${TAG#v}\"/" \
+            -e "s/^  sha256 \".*\"/  sha256 \"$SHA\"/" \
+            Casks/lurkaway.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: bump cask to ${TAG#v}" || { echo "cask already current"; exit 0; }
+          git push
