@@ -57,8 +57,13 @@ At least one sensor must stay enabled.
 
 ```bash
 brew tap farhanfdjabari/lurkaway https://github.com/FarhanFDjabari/lurk-away
+brew trust --cask farhanfdjabari/lurkaway/lurkaway
 brew install --cask lurkaway
 ```
+
+Homebrew refuses to load casks from third-party taps until you trust them, hence the
+middle step — it's a one-time confirmation that you've read [the cask](Casks/lurkaway.rb)
+and are happy with what it does.
 
 Upgrade later with `brew upgrade --cask lurkaway`; remove with `brew uninstall --cask lurkaway`
 (add `--zap` to also delete settings and stored evidence photos).
