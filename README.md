@@ -53,6 +53,19 @@ At least one sensor must stay enabled.
 - A Mac with Touch ID (for unlocking)
 - Front camera (for walk-away detection); the lid trigger needs an Apple Silicon laptop
 
+## Install with Homebrew
+
+```bash
+brew tap farhanfdjabari/lurkaway https://github.com/FarhanFDjabari/lurk-away
+brew install --cask lurkaway
+```
+
+Upgrade later with `brew upgrade --cask lurkaway`; remove with `brew uninstall --cask lurkaway`
+(add `--zap` to also delete settings and stored evidence photos).
+
+The cask strips the Gatekeeper quarantine attribute after install, since release builds
+aren't notarized (see [Installing a downloaded release](#installing-a-downloaded-release)).
+
 ## Build & run
 
 ```bash
